@@ -1,0 +1,33 @@
+services:
+
+  # Local PostgreSQL — mirrors your RDS config
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       retrotrends
+      POSTGRES_USER:     retro_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Automatically runs all migration files on first startup
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retro_user -d retrotrends"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Ingestion service (build from local source)
+  ingestor:
+    build: .
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    # Override for local dev to run just ingestion or just the checker
+    command: ["python", "-m", "ingestion.main", "both"]
+
+volumes:
+  postgres_data:
