@@ -1,18 +1,13 @@
 """
 Tests for ingestion.matcher — variant detection and fuzzy title matching.
-
-These tests intentionally do NOT hit the database or eBay API.
-Run with:  pytest tests/test_matcher.py -v
 """
 
 import pytest
 
-from ingestion.matcher import Matcher, detect_variant, normalise
+from ingestion.matcher import Matcher
+from ingestion.title_utils import detect_variant, normalise
 
 
-# ---------------------------------------------------------------------------
-# detect_variant
-# ---------------------------------------------------------------------------
 
 class TestDetectVariant:
     def test_sealed_keyword(self):
@@ -48,9 +43,6 @@ class TestDetectVariant:
         assert detect_variant("zelda nes LOOSE") == "loose"
 
 
-# ---------------------------------------------------------------------------
-# normalise
-# ---------------------------------------------------------------------------
 
 class TestNormalise:
     def test_strips_platform_noise(self):
@@ -79,9 +71,6 @@ class TestNormalise:
         assert "  " not in result
 
 
-# ---------------------------------------------------------------------------
-# Matcher
-# ---------------------------------------------------------------------------
 
 CATALOG = [
     {"id": 1, "title": "Super Mario Bros"},

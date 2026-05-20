@@ -14,7 +14,7 @@ import psycopg2.extras
 import psycopg2.pool
 from psycopg2.extensions import connection as PgConnection
 
-from .ebay_client import EbayItem
+from .models import EbayItem
 
 logger = logging.getLogger(__name__)
 

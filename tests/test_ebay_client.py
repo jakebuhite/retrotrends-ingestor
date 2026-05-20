@@ -1,8 +1,5 @@
 """
 Tests for ingestion.ebay_client — item parsing and OAuth token handling.
-
-All tests use unittest.mock to avoid real HTTP calls.
-Run with:  pytest tests/test_ebay_client.py -v
 """
 
 from datetime import datetime, timezone
@@ -10,12 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ingestion.ebay_client import EbayClient, EbayItem
+from ingestion.ebay_client import EbayClient
+from ingestion.models import EbayItem
 
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 RAW_ITEM = {
     "itemId":           "v1|123456789|0",
@@ -50,9 +44,6 @@ def client():
     return c
 
 
-# ---------------------------------------------------------------------------
-# _parse_item
-# ---------------------------------------------------------------------------
 
 class TestParseItem:
     def test_basic_fields(self):
@@ -106,9 +97,6 @@ class TestParseItem:
         assert item.listing_type == "AUCTION"
 
 
-# ---------------------------------------------------------------------------
-# search_category — pagination behaviour
-# ---------------------------------------------------------------------------
 
 class TestSearchCategory:
     def _mock_response(self, items: list[dict], total: int) -> MagicMock:
@@ -142,9 +130,6 @@ class TestSearchCategory:
         assert len(results) == 200
 
 
-# ---------------------------------------------------------------------------
-# get_items_by_id
-# ---------------------------------------------------------------------------
 
 class TestGetItemsById:
     def test_returns_empty_for_empty_input(self, client):

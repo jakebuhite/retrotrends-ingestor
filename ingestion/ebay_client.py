@@ -10,7 +10,7 @@ from __future__ import annotations
 import base64
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Generator, Optional
 
@@ -18,7 +18,14 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from .models import EbayItem
+
 logger = logging.getLogger(__name__)
+
+
+class RateLimitError(Exception):
+    """Raised when eBay returns 429 and all retry attempts are exhausted."""
+
 
 EBAY_AUTH_URL   = "https://api.ebay.com/identity/v1/oauth2/token"
 EBAY_BROWSE_URL = "https://api.ebay.com/buy/browse/v1"
@@ -27,26 +34,6 @@ EBAY_SCOPE      = "https://api.ebay.com/oauth/api_scope"
 PAGE_SIZE     = 200   # eBay Browse API maximum
 MAX_RETRIES   = 5
 BACKOFF_BASE  = 2     # seconds; doubles each retry
-
-
-@dataclass
-class EbayItem:
-    """Normalised representation of a single eBay listing."""
-    ebay_listing_id: str
-    raw_title: str
-    condition: Optional[str]
-    listing_type: str               # "AUCTION" | "FIXED_PRICE"
-    listed_price: Optional[float]
-    currency: str
-    status: str                     # "ACTIVE" | "ENDED" | ...
-    listed_at: Optional[datetime]
-    seller_feedback_score: Optional[int]
-    seller_positive_feedback_pct: Optional[float]
-    shipping_cost: Optional[float]
-    item_location: Optional[str]
-    image_url: Optional[str]
-    listing_url: Optional[str]
-    raw_data: dict = field(repr=False)
 
 
 @dataclass
@@ -160,6 +147,10 @@ class EbayClient:
                 return resp.json()
 
             if resp.status_code == 429:
+                if attempt == MAX_RETRIES:
+                    raise RateLimitError(
+                        f"eBay rate limit persisted after {MAX_RETRIES} retries for {url}"
+                    )
                 retry_after = int(resp.headers.get("Retry-After", BACKOFF_BASE ** attempt))
                 logger.warning("Rate limited. Sleeping %ds (attempt %d).", retry_after, attempt)
                 time.sleep(retry_after)

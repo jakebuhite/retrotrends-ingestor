@@ -1,28 +1,7 @@
 """
 main.py
--------
-Entry point for the RetroTrends ingestion service.
 
-Usage:
-    python main.py ingest        # Run one ingestion sweep (next platform due)
-    python main.py check-status  # Run the status checker
-    python main.py both          # Run ingestion then status check
-
-Configuration via environment variables (or a .env file):
-    EBAY_CLIENT_ID      eBay App ID
-    EBAY_CLIENT_SECRET  eBay Cert ID
-    DATABASE_URL        PostgreSQL DSN (postgresql://user:pass@host:5432/db)
-    LOG_LEVEL           DEBUG | INFO | WARNING (default: INFO)
-
-Deployment:
-    On AWS, run this as an ECS Fargate task triggered by EventBridge Scheduler.
-    One task per invocation — no long-running process needed.
-
-    Example EventBridge rule (ingest every 6 hours):
-        cron(0 */6 * * ? *)
-
-    Example EventBridge rule (status check every 12 hours):
-        cron(0 */12 * * ? *)
+Entry point for the ingestion service.
 """
 
 from __future__ import annotations
@@ -39,7 +18,7 @@ from .ingestion import run_ingestion
 from .status_checker import run_status_check
 
 
-load_dotenv()  # loads .env file if present (for local dev); no-op in prod
+load_dotenv()
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),

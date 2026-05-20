@@ -73,14 +73,7 @@ def run_ingestion(conn: PgConnection, client: EbayClient) -> bool:
     return True
 
 
-def _sweep_category(
-    conn: PgConnection,
-    client: EbayClient,
-    queue_id: int,
-    platform_id: int,
-    category_id: str,
-    start_page: int,
-) -> None:
+def _sweep_category(conn: PgConnection, client: EbayClient, queue_id: int, platform_id: int, category_id: str, start_page: int) -> None:
     """
     Page through all eBay listings in a category and upsert them to the DB.
     Checkpoints progress after every flush so a restart can resume.

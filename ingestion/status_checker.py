@@ -1,14 +1,8 @@
 """
 status_checker.py
------------------
+
 Checks whether active listings have sold or expired by calling the
 eBay Browse API's getItems endpoint.
-
-Run this as a separate scheduled job (e.g. every 12 hours) independently
-of the ingestion sweep.
-
-eBay's Browse API limits getItems to 20 IDs per call, so we chunk the
-list of active listings into batches of 20.
 
 Notes on detecting sold vs ended:
   - A "sold" listing will return an item with buyingOptions containing
@@ -101,11 +95,6 @@ def run_status_check(conn: PgConnection, client: EbayClient) -> None:
         "Status check complete: %d sold, %d ended, %d still active.",
         sold, ended, active,
     )
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _resolve_status(raw_data: dict) -> str:
     """
