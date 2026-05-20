@@ -9,7 +9,6 @@ import pytest
 
 from ingestion.ebay_client import EbayClient
 
-
 RAW_ITEM = {
     "itemId":           "v1|123456789|0",
     "title":            "Super Mario Bros NES Cartridge Loose Tested",

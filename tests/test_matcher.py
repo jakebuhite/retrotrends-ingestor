@@ -6,7 +6,6 @@ from ingestion.matcher import Matcher
 from ingestion.title_utils import detect_variant, normalise
 
 
-
 class TestDetectVariant:
     def test_sealed_keyword(self):
         assert detect_variant("Super Mario Bros NES Factory Sealed") == "sealed"

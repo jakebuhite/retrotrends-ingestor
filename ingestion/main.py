@@ -17,7 +17,6 @@ from .ebay_client import EbayClient
 from .ingestion import run_ingestion
 from .status_checker import run_status_check
 
-
 load_dotenv()
 
 logging.basicConfig(
