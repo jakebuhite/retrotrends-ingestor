@@ -10,22 +10,20 @@ import pytest
 from ingestion.ebay_client import EbayClient
 
 RAW_ITEM = {
-    "itemId":           "v1|123456789|0",
-    "title":            "Super Mario Bros NES Cartridge Loose Tested",
-    "condition":        "Used",
-    "buyingOptions":    ["FIXED_PRICE"],
-    "price":            {"value": "14.99", "currency": "USD"},
+    "itemId": "v1|123456789|0",
+    "title": "Super Mario Bros NES Cartridge Loose Tested",
+    "condition": "Used",
+    "buyingOptions": ["FIXED_PRICE"],
+    "price": {"value": "14.99", "currency": "USD"},
     "itemCreationDate": "2024-03-01T10:00:00Z",
     "seller": {
-        "feedbackScore":      1500,
+        "feedbackScore": 1500,
         "feedbackPercentage": "99.2",
     },
-    "shippingOptions": [
-        {"shippingCost": {"value": "4.99", "currency": "USD"}}
-    ],
-    "itemLocation":  {"country": "US"},
-    "image":         {"imageUrl": "https://i.ebayimg.com/images/example.jpg"},
-    "itemWebUrl":    "https://www.ebay.com/itm/123456789",
+    "shippingOptions": [{"shippingCost": {"value": "4.99", "currency": "USD"}}],
+    "itemLocation": {"country": "US"},
+    "image": {"imageUrl": "https://i.ebayimg.com/images/example.jpg"},
+    "itemWebUrl": "https://www.ebay.com/itm/123456789",
 }
 
 
@@ -35,6 +33,7 @@ def client():
     c = EbayClient("fake-client-id", "fake-client-secret")
     # Inject a pre-set token so _access_token() doesn't call eBay
     from ingestion.ebay_client import _Token
+
     c._token = _Token(
         access_token="fake-token",
         expires_at=datetime(2099, 1, 1, tzinfo=datetime.UTC),
@@ -42,19 +41,18 @@ def client():
     return c
 
 
-
 class TestParseItem:
     def test_basic_fields(self):
         item = EbayClient._parse_item(RAW_ITEM)
         assert item.ebay_listing_id == "v1|123456789|0"
-        assert item.raw_title      == "Super Mario Bros NES Cartridge Loose Tested"
-        assert item.condition      == "Used"
-        assert item.listing_type   == "FIXED_PRICE"
+        assert item.raw_title == "Super Mario Bros NES Cartridge Loose Tested"
+        assert item.condition == "Used"
+        assert item.listing_type == "FIXED_PRICE"
 
     def test_price_parsed(self):
         item = EbayClient._parse_item(RAW_ITEM)
         assert item.listed_price == pytest.approx(14.99)
-        assert item.currency     == "USD"
+        assert item.currency == "USD"
 
     def test_shipping_cost_parsed(self):
         item = EbayClient._parse_item(RAW_ITEM)
@@ -62,12 +60,12 @@ class TestParseItem:
 
     def test_seller_fields_parsed(self):
         item = EbayClient._parse_item(RAW_ITEM)
-        assert item.seller_feedback_score        == 1500
+        assert item.seller_feedback_score == 1500
         assert item.seller_positive_feedback_pct == pytest.approx(99.2)
 
     def test_urls_parsed(self):
         item = EbayClient._parse_item(RAW_ITEM)
-        assert item.image_url   == "https://i.ebayimg.com/images/example.jpg"
+        assert item.image_url == "https://i.ebayimg.com/images/example.jpg"
         assert item.listing_url == "https://www.ebay.com/itm/123456789"
 
     def test_listed_at_is_datetime(self):
@@ -93,7 +91,6 @@ class TestParseItem:
         raw = {**RAW_ITEM, "buyingOptions": ["AUCTION"]}
         item = EbayClient._parse_item(raw)
         assert item.listing_type == "AUCTION"
-
 
 
 class TestSearchCategory:
@@ -126,7 +123,6 @@ class TestSearchCategory:
 
         assert mock_get.call_count == 1
         assert len(results) == 200
-
 
 
 class TestGetItemsById:

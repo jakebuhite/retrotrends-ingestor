@@ -3,6 +3,7 @@ db.py
 
 All database I/O for the ingestion service.
 """
+
 from __future__ import annotations
 
 import logging
@@ -77,7 +78,9 @@ def claim_next_queue_entry(conn: PgConnection) -> dict | None:
         return cur.fetchone()
 
 
-def update_queue_progress(conn: PgConnection, queue_id: int, last_page_fetched: int, total_results: int) -> None:
+def update_queue_progress(
+    conn: PgConnection, queue_id: int, last_page_fetched: int, total_results: int
+) -> None:
     """Record sweep progress so a partial run can be resumed."""
     sql = """
         UPDATE ingestion_queue
@@ -190,7 +193,9 @@ def upsert_listings(conn: PgConnection, items: list[EbayItem]) -> int:
     return count
 
 
-def get_listings_due_for_check(conn: PgConnection, limit: int = 1000, stale_hours: int = 12) -> list[dict]:
+def get_listings_due_for_check(
+    conn: PgConnection, limit: int = 1000, stale_hours: int = 12
+) -> list[dict]:
     """
     Return active listings that haven't been checked recently.
     The status checker will call the eBay API to see if they've sold.
@@ -266,7 +271,9 @@ def get_games_for_platform(conn: PgConnection, platform_id: int) -> list[dict]:
         return cur.fetchall()
 
 
-def update_listing_game_id(conn: PgConnection, listing_id: int, game_id: int, variant: str | None) -> None:
+def update_listing_game_id(
+    conn: PgConnection, listing_id: int, game_id: int, variant: str | None
+) -> None:
     sql = """
         UPDATE listings
         SET    game_id    = %s,

@@ -3,6 +3,7 @@ title_utils.py
 
 Title normalisation and variant detection for eBay listing titles.
 """
+
 from __future__ import annotations
 
 import re
@@ -10,19 +11,28 @@ import re
 # Ordered most-specific → least-specific so that "sealed" wins over "CIB"
 # when a listing says "factory sealed complete in box" (rare but it happens).
 _VARIANT_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("sealed", re.compile(
-        r"\b(sealed|factory.?sealed|new.?in.?box|nib|shrink.?wrapped?)\b",
-        re.IGNORECASE,
-    )),
-    ("CIB", re.compile(
-        r"\b(cib|complete.?in.?box|complete|w[/\\].?box|with.?box|"
-        r"w[/\\].?manual|with.?manual|box.?and.?manual)\b",
-        re.IGNORECASE,
-    )),
-    ("loose", re.compile(
-        r"\b(loose|cart(ridge)?.?only|game.?only|no.?box|cartridge)\b",
-        re.IGNORECASE,
-    )),
+    (
+        "sealed",
+        re.compile(
+            r"\b(sealed|factory.?sealed|new.?in.?box|nib|shrink.?wrapped?)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "CIB",
+        re.compile(
+            r"\b(cib|complete.?in.?box|complete|w[/\\].?box|with.?box|"
+            r"w[/\\].?manual|with.?manual|box.?and.?manual)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "loose",
+        re.compile(
+            r"\b(loose|cart(ridge)?.?only|game.?only|no.?box|cartridge)\b",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 _NOISE = re.compile(

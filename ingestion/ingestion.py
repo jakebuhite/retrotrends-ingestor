@@ -50,14 +50,16 @@ def run_ingestion(conn: PgConnection, client: EbayClient) -> bool:
         logger.info("No platforms due for ingestion.")
         return False
 
-    queue_id    = entry["id"]
+    queue_id = entry["id"]
     platform_id = entry["platform_id"]
     category_id = entry["ebay_category_id"]
-    start_page  = entry["last_page_fetched"]
+    start_page = entry["last_page_fetched"]
 
     logger.info(
         "Starting ingestion: platform_id=%d category=%s (resuming from page %d).",
-        platform_id, category_id, start_page,
+        platform_id,
+        category_id,
+        start_page,
     )
 
     try:
@@ -74,7 +76,14 @@ def run_ingestion(conn: PgConnection, client: EbayClient) -> bool:
     return True
 
 
-def _sweep_category(conn: PgConnection, client: EbayClient, queue_id: int, platform_id: int, category_id: str, start_page: int) -> None:
+def _sweep_category(
+    conn: PgConnection,
+    client: EbayClient,
+    queue_id: int,
+    platform_id: int,
+    category_id: str,
+    start_page: int,
+) -> None:
     """
     Page through all eBay listings in a category and upsert them to the DB.
     Checkpoints progress after every flush so a restart can resume.
@@ -140,6 +149,7 @@ def _run_matcher(conn: PgConnection, platform_id: int) -> None:
 
     logger.info(
         "Matching done: %d/%d linked (%.0f%%).",
-        matched_count, len(unmatched),
+        matched_count,
+        len(unmatched),
         100 * matched_count / len(unmatched) if unmatched else 0,
     )

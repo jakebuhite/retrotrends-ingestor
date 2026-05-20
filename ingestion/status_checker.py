@@ -30,8 +30,8 @@ from .ebay_client import EbayClient
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE  = 20    # eBay Browse API max IDs per getItems call
-CHECK_HOURS = 12    # check listings not seen in the last 12 hours
+BATCH_SIZE = 20  # eBay Browse API max IDs per getItems call
+CHECK_HOURS = 12  # check listings not seen in the last 12 hours
 BATCH_LIMIT = 1000  # max listings to check per job run
 
 
@@ -55,8 +55,8 @@ def run_status_check(conn: PgConnection, client: EbayClient) -> None:
     id_map = {row["ebay_listing_id"]: row["id"] for row in due}
     ebay_ids = list(id_map.keys())
 
-    sold   = 0
-    ended  = 0
+    sold = 0
+    ended = 0
     active = 0
 
     for batch in _chunked(ebay_ids, BATCH_SIZE):
@@ -92,8 +92,11 @@ def run_status_check(conn: PgConnection, client: EbayClient) -> None:
 
     logger.info(
         "Status check complete: %d sold, %d ended, %d still active.",
-        sold, ended, active,
+        sold,
+        ended,
+        active,
     )
+
 
 def _resolve_status(raw_data: dict) -> str:
     """

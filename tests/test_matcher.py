@@ -40,7 +40,6 @@ class TestDetectVariant:
         assert detect_variant("zelda nes LOOSE") == "loose"
 
 
-
 class TestNormalise:
     def test_strips_platform_noise(self):
         result = normalise("Super Mario Bros Nintendo NES")
@@ -66,7 +65,6 @@ class TestNormalise:
     def test_collapses_whitespace(self):
         result = normalise("  Zelda   NES  ")
         assert "  " not in result
-
 
 
 CATALOG = [

@@ -42,12 +42,12 @@ def main() -> None:
         print("Usage: python main.py [ingest|check-status|both]")
         sys.exit(1)
 
-    ebay_client_id     = _require_env("EBAY_CLIENT_ID")
+    ebay_client_id = _require_env("EBAY_CLIENT_ID")
     ebay_client_secret = _require_env("EBAY_CLIENT_SECRET")
-    database_url       = _require_env("DATABASE_URL")
+    database_url = _require_env("DATABASE_URL")
 
     client = EbayClient(ebay_client_id, ebay_client_secret)
-    conn   = get_connection(database_url)
+    conn = get_connection(database_url)
 
     try:
         if command in ("ingest", "both"):

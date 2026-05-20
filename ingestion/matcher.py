@@ -46,8 +46,8 @@ class Matcher:
         Returns a MatchResult with matched=True if confidence ≥ threshold,
         otherwise matched=False (game_id will be -1).
         """
-        variant       = detect_variant(raw_title)
-        normalised    = normalise(raw_title)
+        variant = detect_variant(raw_title)
+        normalised = normalise(raw_title)
 
         if not normalised or not self._choices:
             return MatchResult(-1, "", variant, 0.0, False)
@@ -70,7 +70,10 @@ class Matcher:
 
         logger.debug(
             "Matched %r → %r (score=%.1f, variant=%s)",
-            raw_title, game_title, score, variant,
+            raw_title,
+            game_title,
+            score,
+            variant,
         )
         return MatchResult(game_id, game_title, variant, score, True)
 
