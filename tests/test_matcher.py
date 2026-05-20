@@ -103,9 +103,9 @@ class TestMatcher:
         assert not result.matched
 
     def test_no_match_below_threshold(self):
-        # Impossibly high threshold — nothing should match
+        # Typo ("Mairo") survives normalisation so the score stays below 99.9
         m = Matcher(CATALOG, threshold=99.9)
-        result = m.match("Super Mario Bros NES Loose")
+        result = m.match("Super Mairo Bros NES Loose")
         assert not result.matched
 
     def test_returns_correct_variant(self):

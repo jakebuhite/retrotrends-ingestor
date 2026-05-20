@@ -12,7 +12,7 @@ import logging
 import time
 from collections.abc import Generator
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -173,7 +173,7 @@ class EbayClient:
 
     def _access_token(self) -> str:
         """Return a valid OAuth token, fetching a new one if needed."""
-        now = datetime.now(tz=datetime.UTC)
+        now = datetime.now(tz=UTC)
         if self._token and self._token.expires_at > now + timedelta(seconds=60):
             return self._token.access_token
 

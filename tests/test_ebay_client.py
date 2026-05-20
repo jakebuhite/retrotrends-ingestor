@@ -2,7 +2,7 @@
 Tests for ingestion.ebay_client — item parsing and OAuth token handling.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -36,7 +36,7 @@ def client():
 
     c._token = _Token(
         access_token="fake-token",
-        expires_at=datetime(2099, 1, 1, tzinfo=datetime.UTC),
+        expires_at=datetime(2099, 1, 1, tzinfo=UTC),
     )
     return c
 
