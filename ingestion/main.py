@@ -40,7 +40,7 @@ def main() -> None:
     command = sys.argv[1] if len(sys.argv) > 1 else "both"
 
     if command not in ("ingest", "check-status", "both"):
-        print(f"Usage: python main.py [ingest|check-status|both]")
+        print("Usage: python main.py [ingest|check-status|both]")
         sys.exit(1)
 
     ebay_client_id     = _require_env("EBAY_CLIENT_ID")

@@ -16,17 +16,17 @@ Notes on detecting sold vs ended:
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from itertools import islice
-from typing import Iterator
 
-from .ebay_client import EbayClient
 from .db import (
     PgConnection,
     get_listings_due_for_check,
-    mark_listing_sold,
     mark_listing_ended,
+    mark_listing_sold,
     touch_listing,
 )
+from .ebay_client import EbayClient
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,6 @@ def run_status_check(conn: PgConnection, client: EbayClient) -> None:
 
         # Items the API returned — still exist, check their status
         for item in results:
-            listing_id = id_map[item.ebay_listing_id]
             item_status = _resolve_status(item.raw_data)
 
             if item_status == "sold":

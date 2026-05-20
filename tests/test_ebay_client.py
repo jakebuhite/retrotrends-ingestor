@@ -2,13 +2,12 @@
 Tests for ingestion.ebay_client — item parsing and OAuth token handling.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ingestion.ebay_client import EbayClient
-from ingestion.models import EbayItem
 
 
 RAW_ITEM = {
@@ -39,7 +38,7 @@ def client():
     from ingestion.ebay_client import _Token
     c._token = _Token(
         access_token="fake-token",
-        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+        expires_at=datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
     return c
 

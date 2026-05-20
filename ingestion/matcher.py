@@ -8,7 +8,6 @@ and extracts the variant (loose / CIB / sealed) from the title text.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from rapidfuzz import fuzz, process
 

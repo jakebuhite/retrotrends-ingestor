@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -15,18 +14,18 @@ class EbayItem:
     """Normalised representation of a single eBay listing."""
     ebay_listing_id: str
     raw_title: str
-    condition: Optional[str]
+    condition: str | None
     listing_type: str               # "AUCTION" | "FIXED_PRICE"
-    listed_price: Optional[float]
+    listed_price: float | None
     currency: str
     status: str                     # "ACTIVE" | "ENDED" | ...
-    listed_at: Optional[datetime]
-    seller_feedback_score: Optional[int]
-    seller_positive_feedback_pct: Optional[float]
-    shipping_cost: Optional[float]
-    item_location: Optional[str]
-    image_url: Optional[str]
-    listing_url: Optional[str]
+    listed_at: datetime | None
+    seller_feedback_score: int | None
+    seller_positive_feedback_pct: float | None
+    shipping_cost: float | None
+    item_location: str | None
+    image_url: str | None
+    listing_url: str | None
     raw_data: dict = field(repr=False)
 
 

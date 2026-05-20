@@ -10,9 +10,9 @@ from __future__ import annotations
 import base64
 import logging
 import time
+from collections.abc import Generator
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Generator, Optional
+from datetime import datetime, timedelta
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -57,7 +57,7 @@ class EbayClient:
     def __init__(self, client_id: str, client_secret: str):
         self._client_id     = client_id
         self._client_secret = client_secret
-        self._token: Optional[_Token] = None
+        self._token: _Token | None = None
         self._session = self._build_session()
 
     def search_category(
@@ -170,7 +170,7 @@ class EbayClient:
 
     def _access_token(self) -> str:
         """Return a valid OAuth token, fetching a new one if needed."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=datetime.UTC)
         if self._token and self._token.expires_at > now + timedelta(seconds=60):
             return self._token.access_token
 

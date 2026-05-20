@@ -2,8 +2,6 @@
 Tests for ingestion.matcher — variant detection and fuzzy title matching.
 """
 
-import pytest
-
 from ingestion.matcher import Matcher
 from ingestion.title_utils import detect_variant, normalise
 

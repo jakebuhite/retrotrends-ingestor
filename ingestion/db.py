@@ -6,8 +6,8 @@ All database I/O for the ingestion service.
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -18,7 +18,7 @@ from .models import EbayItem
 
 logger = logging.getLogger(__name__)
 
-_pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None
+_pool: psycopg2.pool.ThreadedConnectionPool | None = None
 
 
 def get_connection(dsn: str, minconn: int = 2, maxconn: int = 10) -> PgConnection:
@@ -48,7 +48,7 @@ def transaction(conn: PgConnection) -> Generator[None, None, None]:
         raise
 
 
-def claim_next_queue_entry(conn: PgConnection) -> Optional[dict]:
+def claim_next_queue_entry(conn: PgConnection) -> dict | None:
     """
     Atomically claim the highest-priority platform due for ingestion.
     Returns a dict with platform info, or None if nothing is due.
@@ -266,7 +266,7 @@ def get_games_for_platform(conn: PgConnection, platform_id: int) -> list[dict]:
         return cur.fetchall()
 
 
-def update_listing_game_id(conn: PgConnection, listing_id: int, game_id: int, variant: Optional[str]) -> None:
+def update_listing_game_id(conn: PgConnection, listing_id: int, game_id: int, variant: str | None) -> None:
     sql = """
         UPDATE listings
         SET    game_id    = %s,

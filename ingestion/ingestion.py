@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 
-from .ebay_client import EbayClient, EbayItem
 from .db import (
     PgConnection,
     claim_next_queue_entry,
@@ -22,7 +21,9 @@ from .db import (
     update_queue_progress,
     upsert_listings,
 )
+from .ebay_client import EbayClient
 from .matcher import Matcher
+from .models import EbayItem
 
 logger = logging.getLogger(__name__)
 
