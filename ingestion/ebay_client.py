@@ -225,7 +225,8 @@ class EbayClient:
             status=raw.get("itemAffiliateWebUrl", ""),
             listed_at=listed_at,
             seller_feedback_score=raw.get("seller", {}).get("feedbackScore"),
-            seller_positive_feedback_pct=float(raw.get("seller", {}).get("feedbackPercentage") or 0) or None,
+            seller_positive_feedback_pct=float(raw.get("seller", {}).get("feedbackPercentage") or 0)
+            or None,
             shipping_cost=float(shipping.get("shippingCost", {}).get("value", 0)) or None,
             item_location=raw.get("itemLocation", {}).get("country"),
             image_url=raw.get("image", {}).get("imageUrl"),
