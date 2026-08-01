@@ -1,111 +1,87 @@
-# retrotrends-ingestor
+# RetroTrends Ingestor
 
-eBay ingestion service for **RetroTrends**, a historical pricing service for retro video games.
+Go service that populates the RetroTrends database with GameCube game data from IGDB and historical sold prices from eBay.
 
-This service is responsible for two jobs:
+## Prerequisites
 
-- **Ingestion** — sweeps eBay categories by platform, upserts active listings into PostgreSQL, and fuzzy-matches each listing title to a canonical game in the catalog.
-- **Status Check** — periodically checks active listings to detect sales and record the final sold price.
+- Go 1.23+
+- PostgreSQL 16 (local or via Docker)
+- eBay developer account — [API call limits](https://developer.ebay.com/develop/get-started/api-call-limits)
+- IGDB developer account
 
----
-
-## Quick start (local)
-
-**Prerequisites:** Docker, Python 3.11+
+## Local Setup
 
 ```bash
-# 1. Clone and enter the repo
-git clone https://github.com/your-org/retrotrends-ingestor.git
-cd retrotrends-ingestor
+# 1. Install dependencies
+make deps
 
-# 2. Set up environment variables
-cp .env.example .env
-# Edit .env — add your EBAY_CLIENT_ID and EBAY_CLIENT_SECRET
+# 2. Copy and fill in credentials
+cp .env.sample .env
 
-# 3. Start local Postgres (applies migrations automatically)
-docker compose up -d db
+# 3. Start a local Postgres instance (adjust connection string in .env as needed)
+docker run -d \
+  --name retrotrends-pg \
+  -e POSTGRES_USER=retrotrends \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=retrotrends \
+  -p 5432:5432 \
+  postgres:16-alpine
 
-# 4. Install Python dependencies
-make dev
+# 4. Apply the schema (migration lives in the retrotrends-api repo)
+psql postgres://retrotrends:password@localhost:5432/retrotrends -f path/to/api/migrations/001_initial_schema.sql
+```
 
-# 5. Seed the games catalog (required before matching works)
-# See: docs/seeding.md — import from IGDB or a CSV export
+## Running the Jobs
 
-# 6. Run one ingestion sweep
+```bash
+# Seed the games table from IGDB (run once before ingesting)
+make run-backfill
+
+# Search eBay for new GameCube listings
 make run-ingest
 
-# 7. Run the status checker
-make run-check
+# Check pending listings for sold status
+make run-revisit
 ```
 
----
-
-## Running without Docker
+Or build the binary and run subcommands directly:
 
 ```bash
-pip install -e ".[dev]"
-cp .env.example .env
-# fill in .env values
-
-# Apply migrations manually
-make migrate
-
-python -m ingestion.main ingest        # sweep next due platform
-python -m ingestion.main check-status  # check active listings
-python -m ingestion.main both          # run both in sequence
+make build
+./ingestor backfill
+./ingestor ingest
+./ingestor revisit
+./ingestor --help
 ```
 
----
+## Project Structure
 
-## Configuration
+```
+cmd/ingestor/       entry point and CLI subcommand wiring
+internal/
+  config/           environment variable loading
+  db/               PostgreSQL connection pool
+  models/           shared Go types (Game, Listing, enums)
+  ebay/             eBay Browse API client + condition parsing
+  igdb/             IGDB API client
+  jobs/             job implementations (backfill, ingest, revisit)
+```
 
-All configuration is via environment variables (or a `.env` file for local dev):
+## Environment Variables
 
-| Variable             | Required | Description                                      |
-|----------------------|----------|--------------------------------------------------|
-| `EBAY_CLIENT_ID`     | Yes      | eBay App ID from the developer portal            |
-| `EBAY_CLIENT_SECRET` | Yes      | eBay Cert ID                                     |
-| `DATABASE_URL`       | Yes      | PostgreSQL DSN                                   |
-| `LOG_LEVEL`          | No       | `DEBUG` / `INFO` / `WARNING` (default: `INFO`)   |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `EBAY_CLIENT_ID` | Yes | — | eBay OAuth client ID |
+| `EBAY_CLIENT_SECRET` | Yes | — | eBay OAuth client secret |
+| `IGDB_CLIENT_ID` | Yes | — | IGDB (Twitch) client ID |
+| `IGDB_CLIENT_SECRET` | Yes | — | IGDB (Twitch) client secret |
+| `EBAY_DAILY_CALL_LIMIT` | No | `5000` | Maximum eBay API calls per day |
+| `INGEST_MAX_PAGES` | No | `5` | Maximum eBay search pages per game |
 
-eBay developer credentials: https://developer.ebay.com/my/keys
-
----
-
-## Development
+## Docker
 
 ```bash
-make dev        # install all deps including dev tools
-make test       # run the test suite
-make lint       # ruff linter
-make fmt        # auto-format with ruff
-make typecheck  # mypy
-make check      # lint + typecheck + test in one go
+make docker-build
+docker run --env-file .env retrotrends-ingestor ingest
 ```
-
-CI runs on every push and pull request via GitHub Actions (`.github/workflows/ci.yml`).
-
----
-
-## Database migrations
-
-Migrations live in `migrations/` and are numbered sequentially. Apply them in order:
-
-```bash
-make migrate    # applies all migrations/*.sql to $DATABASE_URL
-```
-
-When running locally via docker compose, migrations are applied automatically on first start.
-
----
-
-## Deployment (AWS)
-
-The service is designed to run as an **ECS Fargate task** triggered by **EventBridge Scheduler**.
-
-High-level steps:
-
-1. Push the Docker image to ECR.
-2. Create an ECS task definition pointing to the image; pass env vars via Secrets Manager / Parameter Store.
-3. Create two EventBridge Scheduler rules — one for ingestion (e.g. every 6h), one for the status checker (every 12h).
-4. Ensure the ECS task's IAM role has no outbound restrictions beyond what's needed (eBay API + RDS).
