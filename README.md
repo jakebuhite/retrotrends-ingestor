@@ -85,3 +85,9 @@ internal/
 make docker-build
 docker run --env-file .env retrotrends-ingestor ingest
 ```
+
+## Limitations
+
+- **eBay API rate limits.** The Browse API enforces daily call limits per application (see [API call limits](https://developer.ebay.com/develop/get-started/api-call-limits)); `EBAY_DAILY_CALL_LIMIT` should be kept in line with the tier on the developer account.
+- **No batch item lookup.** eBay's `getItems` endpoint (bulk item retrieval) is restricted to eBay Partner Network members. Without that access, the revisit job must call `getItem`/Browse item lookups one item at a time, which is far less call-efficient for checking listing status at scale.
+- **eBay's Marketplace Insights API.** More accurate sale prices requires Marketplace Insights API, which is also Partner-gated.

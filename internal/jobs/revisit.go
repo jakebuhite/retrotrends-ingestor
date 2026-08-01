@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/jakebuhite/retrotrends-ingestor/internal/config"
@@ -17,12 +18,8 @@ import (
 func Revisit(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 	client := ebay.NewClient(cfg.EbayClientID, cfg.EbayClientSecret)
 
-	// Reserve the ingest budget and use the remainder for revisit.
-	ingestBudget := cfg.IngestMaxPages * 200 // conservative upper bound for 200 games
-	revisitBudget := cfg.EbayDailyCallLimit - ingestBudget
-	if revisitBudget <= 0 {
-		revisitBudget = cfg.EbayDailyCallLimit / 2
-	}
+	// ebay API limits are split evenly with the ingest job.
+	revisitBudget := cfg.EbayDailyCallLimit / 2
 
 	pending, err := fetchPendingListings(ctx, pool, revisitBudget)
 	if err != nil {
@@ -53,36 +50,29 @@ func Revisit(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error 
 }
 
 func fetchPendingListings(ctx context.Context, pool *pgxpool.Pool, limit int) ([]models.Listing, error) {
-	// TODO: implement
-	//
-	// SELECT id, ebay_listing_id FROM listings
-	// WHERE status = 'pending'
-	// ORDER BY last_checked_at ASC NULLS FIRST
-	// LIMIT $1
-	_ = pool
-	_ = limit
-	return nil, nil
+	rows, err := pool.Query(ctx, `SELECT id, ebay_listing_id FROM listings
+		WHERE status = 'pending'
+		ORDER BY last_checked_at ASC NULLS FIRST
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Listing])
 }
 
 func applyListingStatus(ctx context.Context, pool *pgxpool.Pool, listingID int64, status *ebay.ItemStatus) error {
-	// TODO: implement
-	//
-	// if status.Sold:
-	//   UPDATE listings
-	//   SET status = 'sold', sold_price = $1, sold_at = $2, last_checked_at = NOW(), updated_at = NOW()
-	//   WHERE id = $3
-	//
-	// else if status.EndedAt != nil (listing ended but not sold):
-	//   UPDATE listings
-	//   SET status = 'ended_unsold', last_checked_at = NOW(), updated_at = NOW()
-	//   WHERE id = $1
-	//
-	// else (still active):
-	//   UPDATE listings
-	//   SET last_checked_at = NOW(), updated_at = NOW()
-	//   WHERE id = $1
-	_ = pool
-	_ = listingID
-	_ = status
-	return nil
+	var err error
+	if status.Sold {
+		_, err = pool.Exec(ctx, `UPDATE listings
+			SET status = 'sold', sold_at = $1, last_checked_at = NOW(), updated_at = NOW()
+			WHERE id = $2`, status.SoldAt, listingID)
+	} else {
+		// Still active
+		_, err = pool.Exec(ctx, `UPDATE listings
+			SET last_checked_at = NOW(), updated_at = NOW()
+			WHERE id = $1`, listingID)
+	}
+	return err
 }

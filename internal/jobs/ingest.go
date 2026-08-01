@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/jakebuhite/retrotrends-ingestor/internal/config"
@@ -21,12 +22,15 @@ func Ingest(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 		return err
 	}
 
+	// ebay API limits are split evenly with the revisit job.
+	ingestBudget := cfg.EbayDailyCallLimit / 2
+
 	callsUsed := 0
 
 	for _, game := range games {
 		for page := 1; page <= cfg.IngestMaxPages; page++ {
-			if callsUsed >= cfg.EbayDailyCallLimit {
-				log.Printf("ingest: daily call limit reached (%d), stopping early", cfg.EbayDailyCallLimit)
+			if callsUsed >= ingestBudget {
+				log.Printf("ingest: call budget reached (%d), stopping early", ingestBudget)
 				return nil
 			}
 
@@ -59,28 +63,29 @@ func Ingest(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 }
 
 func fetchAllGames(ctx context.Context, pool *pgxpool.Pool) ([]models.Game, error) {
-	// TODO: implement
-	//
-	// SELECT id, title FROM games ORDER BY title
-	_ = pool
-	return nil, nil
+	rows, err := pool.Query(ctx, "SELECT id, title FROM games ORDER BY title")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Game])
 }
 
 func insertListingIfNew(ctx context.Context, pool *pgxpool.Pool, gameID int64, r ebay.SearchResult) error {
-	// TODO: implement
-	//
-	// condition := ebay.ParseCondition(r.Condition, r.Title)
-	// listingType := parseListingType(r.ListingType)
-	//
-	// INSERT INTO listings
-	//   (game_id, ebay_listing_id, raw_title, condition, listing_type,
-	//    asking_price, currency, listing_url, listed_at, status)
-	// VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
-	// ON CONFLICT (ebay_listing_id) DO NOTHING
-	_ = pool
-	_ = gameID
-	_ = r
-	return nil
+	condition := ebay.ParseCondition(r.Condition, r.Title)
+	listingType := parseListingType(r.ListingType)
+
+	_, err := pool.Exec(ctx, `
+		INSERT INTO listings
+			(game_id, ebay_listing_id, raw_title, condition, listing_type,
+			 asking_price, currency, listing_url, listed_at, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+		ON CONFLICT (ebay_listing_id) DO NOTHING
+	`, gameID, r.ItemID, r.Title, condition, listingType,
+		r.Price, r.Currency, r.ListingURL, r.ListedAt)
+
+	return err
 }
 
 func parseListingType(ebayBuyingOption string) models.ListingType {

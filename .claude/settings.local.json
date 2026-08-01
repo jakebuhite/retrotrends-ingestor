@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python -c ' *)",
-      "Bash(go mod *)",
-      "Bash(go build *)"
-    ]
-  }
-}
