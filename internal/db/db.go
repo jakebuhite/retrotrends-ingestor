@@ -15,6 +15,5 @@ func Connect(url string) *pgxpool.Pool {
 	if err := pool.Ping(context.Background()); err != nil {
 		log.Fatalf("database ping failed: %v", err)
 	}
-	log.Println("connected to database")
 	return pool
 }
