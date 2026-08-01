@@ -12,15 +12,16 @@ import (
 )
 
 // igdbRateLimit represents the max number of requests per second to the IGDB API.
-const igdbRateLimit = 4
+const (
+	igdbRateLimit = 4
+	igdbPageSize  = 500
+)
 
 // Backfill fetches all GameCube games from IGDB and upserts them into the games table.
 // It is safe to re-run; existing rows are updated in place via ON CONFLICT (igdb_id).
 func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 	client := igdb.NewClient(cfg.IGDBClientID, cfg.IGDBClientSecret)
 	limiter := rate.NewLimiter(rate.Limit(igdbRateLimit), 1)
-
-	const pageSize = 500
 	offset := 0
 	total := 0
 
@@ -29,10 +30,12 @@ func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error
 			return err
 		}
 
-		games, err := client.FetchGameCubeGames(ctx, offset, pageSize)
+		games, err := client.FetchGameCubeGames(ctx, offset, igdbPageSize)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("backfill: fetched %d games (offset: %d)", len(games), offset)
 		if len(games) == 0 {
 			break
 		}
@@ -46,10 +49,10 @@ func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error
 		total += len(games)
 		log.Printf("backfill: upserted %d games (total: %d)", len(games), total)
 
-		if len(games) < pageSize {
+		if len(games) < igdbPageSize {
 			break
 		}
-		offset += pageSize
+		offset += igdbPageSize
 	}
 
 	log.Printf("backfill complete: %d games total", total)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,7 +17,7 @@ const (
 
 	// gameCubePlatformID is the IGDB platform ID for Nintendo GameCube.
 	gameCubePlatformID = 21
-	gameTypes          = "0,3,8,11" // main game, bundle, remake, port
+	gameTypes          = "0,3,8,11" // main, bundle, remake, port
 )
 
 // Client is a minimal IGDB API client with Twitch OAuth2 client credentials auth.
@@ -26,15 +27,6 @@ type Client struct {
 	clientSecret string
 	accessToken  string
 	tokenExpiry  time.Time
-}
-
-// Game holds the fields extracted from an IGDB game record.
-type Game struct {
-	ID          int
-	Name        string
-	Slug        string
-	ReleaseYear *int16
-	CoverURL    *string
 }
 
 type authResponse struct {
@@ -64,12 +56,15 @@ func (c *Client) FetchGameCubeGames(ctx context.Context, offset, limit int) ([]G
 
 	// Filtering criteria is IGDB query language in raw body.
 	respBody := `fields id,name,slug,first_release_date,cover.url;
-	where platforms = ` + fmt.Sprint(gameCubePlatformID) + ` & game_type = (` + gameTypes + `);
-	limit ` + fmt.Sprint(limit) + `; offset ` + fmt.Sprint(offset) + `;`
+	where platforms = (` + fmt.Sprint(gameCubePlatformID) + `) & game_type = (` + gameTypes + `);
+	sort id asc; limit ` + fmt.Sprint(limit) + `; offset ` + fmt.Sprint(offset) + `;`
 
 	u := apiURL + "/games"
 
 	resp, err := http.NewRequest(http.MethodPost, u, strings.NewReader(respBody))
+	if err != nil {
+		return nil, err
+	}
 	resp.Header.Add("Client-ID", c.clientID)
 	resp.Header.Add("Authorization", "Bearer "+c.accessToken)
 
@@ -80,14 +75,25 @@ func (c *Client) FetchGameCubeGames(ctx context.Context, offset, limit int) ([]G
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(response.Body)
 		return nil, &url.Error{
 			Op:  "POST",
 			URL: u,
-			Err: err,
+			Err: fmt.Errorf("unexpected status %d: %s", response.StatusCode, body),
 		}
 	}
 
-	return nil, nil
+	var raw []gameJSON
+	if err := json.NewDecoder(response.Body).Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	games := make([]Game, len(raw))
+	for i, r := range raw {
+		games[i] = r.toGame()
+	}
+
+	return games, nil
 }
 
 // ensureToken fetches a new Twitch OAuth2 token if the current one is missing
@@ -119,10 +125,11 @@ func (c *Client) ensureToken() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
 		return &url.Error{
 			Op:  "POST",
 			URL: u.String(),
-			Err: err,
+			Err: fmt.Errorf("unexpected status %d: %s", resp.StatusCode, body),
 		}
 	}
 
