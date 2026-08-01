@@ -9,6 +9,7 @@ import (
 
 	"github.com/jakebuhite/retrotrends-ingestor/internal/config"
 	"github.com/jakebuhite/retrotrends-ingestor/internal/igdb"
+	"github.com/jakebuhite/retrotrends-ingestor/internal/platform"
 )
 
 // igdbRateLimit represents the max number of requests per second to the IGDB API.
@@ -17,9 +18,10 @@ const (
 	igdbPageSize  = 500
 )
 
-// Backfill fetches all GameCube games from IGDB and upserts them into the games table.
-// It is safe to re-run; existing rows are updated in place via ON CONFLICT (igdb_id).
-func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
+// Backfill fetches all games for the given platform from IGDB and upserts
+// them into the games table. It is safe to re-run; existing rows are updated
+// in place via ON CONFLICT (igdb_id).
+func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool, plat platform.Platform) error {
 	client := igdb.NewClient(cfg.IGDBClientID, cfg.IGDBClientSecret)
 	limiter := rate.NewLimiter(rate.Limit(igdbRateLimit), 1)
 	offset := 0
@@ -30,7 +32,7 @@ func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error
 			return err
 		}
 
-		games, err := client.FetchGameCubeGames(ctx, offset, igdbPageSize)
+		games, err := client.FetchGames(ctx, plat.ID, offset, igdbPageSize)
 		if err != nil {
 			return err
 		}
@@ -41,7 +43,7 @@ func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error
 		}
 
 		for _, g := range games {
-			if err := upsertGame(ctx, pool, g); err != nil {
+			if err := upsertGame(ctx, pool, g, plat.Name); err != nil {
 				return err
 			}
 		}
@@ -59,16 +61,16 @@ func Backfill(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error
 	return nil
 }
 
-func upsertGame(ctx context.Context, pool *pgxpool.Pool, g igdb.Game) error {
+func upsertGame(ctx context.Context, pool *pgxpool.Pool, g igdb.Game, platformName string) error {
 	_, err := pool.Exec(ctx, `
 		INSERT INTO games (igdb_id, title, slug, platform, release_year, cover_url, updated_at)
-		VALUES ($1, $2, $3, 'Nintendo GameCube', $4, $5, NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 		ON CONFLICT (igdb_id) DO UPDATE SET
 			title = EXCLUDED.title,
 			slug = EXCLUDED.slug,
 			release_year = EXCLUDED.release_year,
 			cover_url = EXCLUDED.cover_url,
 			updated_at = NOW()
-	`, g.ID, g.Name, g.Slug, g.ReleaseYear, g.CoverURL)
+	`, g.ID, g.Name, g.Slug, platformName, g.ReleaseYear, g.CoverURL)
 	return err
 }

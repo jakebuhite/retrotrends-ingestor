@@ -62,12 +62,13 @@ type authResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
-// SearchGameCubeListings returns up to one page of active eBay listings matching
-// the game title. page is 1-indexed; each page contains up to 50 results.
+// SearchListings returns up to one page of active eBay listings matching the
+// game title and platform search term. page is 1-indexed; each page contains
+// up to 50 results.
 //
 // Calls: GET /buy/browse/v1/item_summary/search
-// Params: q="{title} gamecube", category_ids=1249, limit=200, offset=(page-1)*limit
-func (c *Client) SearchGameCubeListings(ctx context.Context, gameTitle string, page int) ([]SearchResult, error) {
+// Params: q="{title} {searchTerm}", category_ids=1249, limit=200, offset=(page-1)*limit
+func (c *Client) SearchListings(ctx context.Context, gameTitle, searchTerm string, page int) ([]SearchResult, error) {
 	if err := c.ensureToken(); err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (c *Client) SearchGameCubeListings(ctx context.Context, gameTitle string, p
 		return nil, err
 	}
 	q := u.Query()
-	q.Set("q", fmt.Sprintf("%s gamecube", gameTitle))
+	q.Set("q", fmt.Sprintf("%s %s", gameTitle, searchTerm))
 	q.Set("category_ids", videoGamesCategoryID) // Video Games
 	q.Set("limit", fmt.Sprint(pageLimit))
 	q.Set("offset", fmt.Sprint((page-1)*pageLimit))

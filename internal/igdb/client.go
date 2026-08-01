@@ -15,9 +15,7 @@ const (
 	authURL = "https://id.twitch.tv/oauth2/token"
 	apiURL  = "https://api.igdb.com/v4"
 
-	// gameCubePlatformID is the IGDB platform ID for Nintendo GameCube.
-	gameCubePlatformID = 21
-	gameTypes          = "0,3,8,11" // main, bundle, remake, port
+	gameTypes = "0,3,8,11" // main, bundle, remake, port
 )
 
 // Client is a minimal IGDB API client with Twitch OAuth2 client credentials auth.
@@ -43,20 +41,20 @@ func NewClient(clientID, clientSecret string) *Client {
 	}
 }
 
-// FetchGameCubeGames returns a single page of GameCube games from IGDB.
+// FetchGames returns a single page of games from IGDB for the given platform ID.
 // offset is the number of records to skip; limit is the page size (max 500).
 // Returns an empty slice when there are no more results.
 //
 // Calls: POST /games
 // Body:  fields id,name,slug,first_release_date,cover.url;
-func (c *Client) FetchGameCubeGames(ctx context.Context, offset, limit int) ([]Game, error) {
+func (c *Client) FetchGames(ctx context.Context, platformID, offset, limit int) ([]Game, error) {
 	if err := c.ensureToken(); err != nil {
 		return nil, err
 	}
 
 	// Filtering criteria is IGDB query language in raw body.
 	respBody := `fields id,name,slug,first_release_date,cover.url;
-	where platforms = (` + fmt.Sprint(gameCubePlatformID) + `) & game_type = (` + gameTypes + `);
+	where platforms = (` + fmt.Sprint(platformID) + `) & game_type = (` + gameTypes + `);
 	sort id asc; limit ` + fmt.Sprint(limit) + `; offset ` + fmt.Sprint(offset) + `;`
 
 	u := apiURL + "/games"

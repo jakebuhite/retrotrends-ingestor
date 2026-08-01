@@ -4,7 +4,7 @@
 
 RetroTrends tracks historical sold prices for retro video games. The system has two primary components:
 
-1. **Ingestor** (Go) — a scheduled job that pulls GameCube listings from eBay, stores them, and revisits pending listings to confirm sold status.
+1. **Ingestor** (Go) — a scheduled job that pulls retro game listings from eBay, stores them, and revisits pending listings to confirm sold status.
 2. **API** (Java/Spring Boot) — a REST service that exposes price history and game catalog data to consumers.
 
 Both services share a single **PostgreSQL** database (AWS RDS) and run as containers on **AWS ECS Fargate**.
@@ -63,8 +63,8 @@ A single Go binary with three subcommands, each triggered independently:
 
 | Subcommand | Trigger | Purpose |
 |------------|---------|---------|
-| `backfill` | Manual / one-time | Fetches all GameCube games from IGDB and populates the `games` table |
-| `ingest` | EventBridge daily at 02:00 UTC | Searches eBay for new GameCube listings; stores them as `pending` |
+| `backfill` | Manual / one-time | Fetches all games for a given `--platform` from IGDB and populates the `games` table (defaults to GameCube; see `internal/platform` for the full supported list) |
+| `ingest` | EventBridge daily at 02:00 UTC | Searches eBay for new listings for every tracked game, across all platforms already in the `games` table; stores them as `pending` |
 | `revisit` | EventBridge daily at 04:00 UTC | Checks each `pending` listing and updates sold/ended status |
 
 The `ingest` and `revisit` jobs are independent ECS Scheduled Tasks. The `backfill` command is run manually as a one-off ECS task when the game catalog needs to be seeded or refreshed.
@@ -118,8 +118,8 @@ See [data-model.md](data-model.md) for schema documentation.
 
 This is a prerequisite for the ingestor. It must be run before any eBay ingestion begins.
 
-1. Call IGDB's `games` endpoint, filtered to `platform = Nintendo GameCube`, paginating until all results are consumed.
-2. For each game, upsert into the `games` table (keyed on `igdb_id`).
+1. Call IGDB's `games` endpoint, filtered to `platform = <selected platform's IGDB ID>` (via `--platform`, default `gamecube`), paginating until all results are consumed.
+2. For each game, upsert into the `games` table (keyed on `igdb_id`), storing the selected platform's canonical name.
 3. Log counts of inserted vs. updated records.
 
 IGDB uses OAuth 2.0 client credentials. The access token is fetched at startup and cached for the duration of the job.
@@ -131,7 +131,7 @@ IGDB uses OAuth 2.0 client credentials. The access token is fetched at startup a
 **Flow:**
 1. Load all games from the `games` table.
 2. For each game:
-   a. Build a search query: `"{game.title}" gamecube`
+   a. Build a search query: `"{game.title}" {platform.searchTerm}`, where the search term is looked up from the game's stored `platform` name (e.g. `"gamecube"`, `"snes"`)
    b. Call eBay's Browse API `search` endpoint, up to **5 pages** (50 items/page = 250 listings/game).
    c. For each listing returned:
       - Skip if `ebay_listing_id` already exists in `listings` (idempotent).

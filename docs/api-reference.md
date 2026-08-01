@@ -14,7 +14,7 @@ The RetroTrends API is a read-only REST API that exposes game catalog data and h
 
 ### List Games
 
-Returns all tracked GameCube games.
+Returns all tracked games, across all backfilled platforms.
 
 ```
 GET /v1/games

@@ -8,7 +8,7 @@ RetroTrends uses a single PostgreSQL database with two core tables: `games` (the
 
 ### `games`
 
-Populated by the IGDB backfill job. Represents the canonical list of GameCube titles the system tracks.
+Populated by the IGDB backfill job. Represents the canonical list of titles the system tracks.
 
 ```sql
 CREATE TABLE games (
@@ -16,7 +16,7 @@ CREATE TABLE games (
     igdb_id      INTEGER      NOT NULL UNIQUE,
     title        TEXT         NOT NULL,
     slug         TEXT         NOT NULL UNIQUE,  -- URL-safe title, e.g. "super-mario-sunshine"
-    platform     TEXT         NOT NULL DEFAULT 'Nintendo GameCube',
+    platform     TEXT         NOT NULL DEFAULT 'Nintendo GameCube', -- legacy default
     release_year SMALLINT,
     cover_url    TEXT,
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -152,7 +152,7 @@ CREATE TABLE games (
     igdb_id      INTEGER      NOT NULL UNIQUE,
     title        TEXT         NOT NULL,
     slug         TEXT         NOT NULL UNIQUE,
-    platform     TEXT         NOT NULL DEFAULT 'Nintendo GameCube',
+    platform     TEXT         NOT NULL DEFAULT 'Nintendo GameCube', -- legacy default
     release_year SMALLINT,
     cover_url    TEXT,
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

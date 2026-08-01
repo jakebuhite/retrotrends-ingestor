@@ -1,6 +1,8 @@
 # RetroTrends Ingestor
 
-Go service that populates the RetroTrends database with GameCube game data from IGDB and historical sold prices from eBay.
+Go service that populates the RetroTrends database with retro game data from IGDB and historical sold prices from eBay.
+
+Supports any platform in the [retro platform registry](internal/platform/platform.go) (generally Wii/PS3/Xbox 360 and earlier — see that file for the exact cutoff and rationale). Run `./ingestor platforms` to list all supported `--platform` slugs.
 
 ## Prerequisites
 
@@ -34,10 +36,10 @@ psql postgres://retrotrends:password@localhost:5432/retrotrends -f path/to/api/m
 ## Running the Jobs
 
 ```bash
-# Seed the games table from IGDB (run once before ingesting)
+# Seed the games table from IGDB (run once before ingesting; defaults to --platform gamecube)
 make run-backfill
 
-# Search eBay for new GameCube listings
+# Search eBay for new listings for every tracked game
 make run-ingest
 
 # Check pending listings for sold status
@@ -48,11 +50,14 @@ Or build the binary and run subcommands directly:
 
 ```bash
 make build
-./ingestor backfill
+./ingestor backfill --platform gamecube  # or any slug from `./ingestor platforms`
 ./ingestor ingest
 ./ingestor revisit
+./ingestor platforms
 ./ingestor --help
 ```
+
+`ingest` and `revisit` operate over whatever is already in the `games` table, so they aren't platform-scoped.
 
 ## Project Structure
 
@@ -64,6 +69,7 @@ internal/
   models/           shared Go types (Game, Listing, enums)
   ebay/             eBay Browse API client + condition parsing
   igdb/             IGDB API client
+  platform/         retro platform registry (IGDB ID, name, eBay search term)
   jobs/             job implementations (backfill, ingest, revisit)
 ```
 

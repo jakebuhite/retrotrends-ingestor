@@ -10,10 +10,11 @@ import (
 	"github.com/jakebuhite/retrotrends-ingestor/internal/config"
 	"github.com/jakebuhite/retrotrends-ingestor/internal/ebay"
 	"github.com/jakebuhite/retrotrends-ingestor/internal/models"
+	"github.com/jakebuhite/retrotrends-ingestor/internal/platform"
 )
 
-// Ingest searches eBay for GameCube listings for each game in the catalog and stores
-// new listings as pending. It stops early if the daily API call budget is exhausted.
+// Ingest searches eBay for listings for each game in the catalog and stores new listings
+// as pending. It stops early if the daily API call budget is exhausted.
 func Ingest(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 	client := ebay.NewClient(cfg.EbayClientID, cfg.EbayClientSecret)
 
@@ -28,13 +29,19 @@ func Ingest(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 	callsUsed := 0
 
 	for _, game := range games {
+		plat, err := platform.ByName(game.Platform)
+		if err != nil {
+			log.Printf("ingest: skipping %q: %v", game.Title, err)
+			continue
+		}
+
 		for page := 1; page <= cfg.IngestMaxPages; page++ {
 			if callsUsed >= ingestBudget {
 				log.Printf("ingest: call budget reached (%d), stopping early", ingestBudget)
 				return nil
 			}
 
-			results, err := client.SearchGameCubeListings(ctx, game.Title, page)
+			results, err := client.SearchListings(ctx, game.Title, plat.SearchTerm, page)
 			callsUsed++
 			if err != nil {
 				log.Printf("ingest: search error for %q page %d: %v", game.Title, page, err)
@@ -63,7 +70,7 @@ func Ingest(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) error {
 }
 
 func fetchAllGames(ctx context.Context, pool *pgxpool.Pool) ([]models.Game, error) {
-	rows, err := pool.Query(ctx, "SELECT id, title FROM games ORDER BY title")
+	rows, err := pool.Query(ctx, "SELECT id, title, platform FROM games ORDER BY title")
 	if err != nil {
 		return nil, err
 	}
