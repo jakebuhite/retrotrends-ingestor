@@ -1,4 +1,4 @@
-.PHONY: deps build test lint run-backfill run-ingest run-revisit docker-build
+.PHONY: deps build test lint cover run-backfill run-ingest run-revisit docker-build
 
 deps:
 	go mod tidy
@@ -11,6 +11,10 @@ test:
 
 lint:
 	go vet ./...
+
+cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
 
 run-backfill: build
 	./ingestor backfill
