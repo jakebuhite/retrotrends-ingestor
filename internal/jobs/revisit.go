@@ -59,7 +59,7 @@ func fetchPendingListings(ctx context.Context, pool *pgxpool.Pool, limit int) ([
 	}
 	defer rows.Close()
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Listing])
+	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[models.Listing])
 }
 
 func applyListingStatus(ctx context.Context, pool *pgxpool.Pool, listingID int64, status *ebay.ItemStatus) error {

@@ -76,7 +76,7 @@ func fetchAllGames(ctx context.Context, pool *pgxpool.Pool) ([]models.Game, erro
 	}
 	defer rows.Close()
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Game])
+	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[models.Game])
 }
 
 func insertListingIfNew(ctx context.Context, pool *pgxpool.Pool, gameID int64, r ebay.SearchResult) error {
